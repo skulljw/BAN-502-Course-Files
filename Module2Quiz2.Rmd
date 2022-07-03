@@ -1,0 +1,206 @@
+---
+title: "Module2Quiz2"
+author: "John Scull"
+date: "5/30/2022"
+output: word_document
+---
+
+Libraries
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(glmnet) 
+library(GGally)
+library(ggcorrplot) 
+library(MASS)
+library(car) 
+library(lubridate)
+library(lmtest)
+library(splines)
+```
+
+```{r}
+library(readr)
+bike_cleaned <- read_csv("~/Documents/BAN 502/Module 2/bike_cleaned.csv")
+```
+
+```{r}
+bike = bike_cleaned
+bike = bike %>% mutate(dteday = mdy(dteday))
+bike = bike %>% mutate_if(is.character, as_factor)
+bike = bike %>% mutate(hr = as_factor(hr))
+summary(bike)
+```
+
+
+Question 1 Which of the quantitative variables appears to be best correlated with “count”? NOTE: Ignore
+the “registered” and “casual” variable as the sum of these two variables equals “count”. Because these
+variables combine to make the response variable, they cannot be used as predictors. You can also ignore the
+“instant” variable as it is just a row number.
+A. windspeed
+B. hum
+C. atemp
+D. *temp*
+```{r}
+ggcorr(bike,label = TRUE,label_round = 2)
+```
+
+
+Repeat this boxplot-based analysis for each of the categorical variables.
+```{r}
+ggplot(bike,aes(x=temp,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=hr,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=atemp,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=instant,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=hum,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=windspeed,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=casual,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=registered,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=season,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=dteday,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=mnth,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=hr,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=holiday,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=weekday,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=workingday,y=count)) + geom_boxplot() + theme_bw()
+ggplot(bike,aes(x=weathersit,y=count)) + geom_boxplot() + theme_bw()
+```
+Question 2 Which “season” appears to have the highest count of rides?
+A. Winter
+B. Spring
+C. *Summer*
+D. Fall
+
+Question 3 Build a linear regression model (using tidymodels) with “hr” to predict “count”. You will use
+this model to answer the next several questions.
+```{r}
+bike_recipe = recipe(count ~ hr, bike) %>%
+  step_dummy(all_nominal())
+
+lm_model = #give the model type a name 
+  linear_reg() %>% #specify that we are doing linear regression
+  set_engine("lm") #specify the specify type of linear tool we want to use 
+
+lm_wflow = 
+  workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(bike_recipe)
+
+lm_fit = fit(lm_wflow, bike)
+```
+
+```{r}
+summary(lm_fit$fit$fit$fit)
+```
+
+How many dummy (indicator) variables are used to represent “hr” in the model? *23*
+
+Question 4 In your model from Question 3, which hour is selected as the “base” level (category)? The base
+level does not have an associated coefficient (slope) in the linear regression model. *0*
+
+Question 5 During which hour of the day does the model predict the highest number of rides? *17*
+
+Question 6 Plot “temp” (x axis) versus “count” (y axis) using an appropriate plot type.
+```{r}
+ggplot(bike,aes(x=temp,y=count)) + geom_point() + theme_bw()
+```
+
+Which statement best describes the general relationship between “temp” and “count”?
+A. *As “temp” increases, “count” appears to generally increase.*
+B. As “temp” increases, “count” appears to generally decrease.
+C. There does not appear to be a relationship between “temp” and “count”.
+
+Question 7 Create a linear regression model (using tidymodels) with “hr” and “temp” to predict “count”.
+You will use this model to answer the next several questions.
+
+```{r}
+bike_recipe = recipe(count ~ hr + temp, bike) %>%
+  step_dummy(all_nominal())
+
+lm_model = #give the model type a name 
+  linear_reg() %>% #specify that we are doing linear regression
+  set_engine("lm") #specify the specify type of linear tool we want to use 
+
+lm_wflow = 
+  workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(bike_recipe)
+
+lm_fit2 = fit(lm_wflow, bike)
+```
+
+```{r}
+summary(lm_fit2$fit$fit$fit)
+```
+
+What is the value of the slope coefficient for “hr23” in this model (to three decimal places)? *31.748*
+
+Question 8 What is the adjusted R-squared value (to four decimal places) for the model from Question 7? *0.5886*
+
+Question 9 Create a linear regression model (using tidymodels as usual) with “temp” and “atemp” to predict
+“count”. 
+```{r}
+bike_recipe = recipe(count ~ temp + atemp, bike) %>%
+  step_dummy(all_nominal())
+
+lm_model = #give the model type a name 
+  linear_reg() %>% #specify that we are doing linear regression
+  set_engine("lm") #specify the specify type of linear tool we want to use 
+
+lm_wflow = 
+  workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(bike_recipe)
+
+lm_fit3 = fit(lm_wflow, bike)
+```
+
+```{r}
+summary(lm_fit3$fit$fit$fit)
+```
+
+
+What is the adjusted R-squared value (to four decimal places) of this model? *0.1638*
+
+Question 10 Which of the two variables in the model from Question 9 are significant?
+A. *temp ONLY*
+B. atemp ONLY
+C. Neither temp nor atemp are significant
+D. Both temp and atemp are significant
+
+Question 11 The model from Question 9 likely demonstrates which phenomenon?
+A. Non-constant variance of residuals
+B. Non-normality of residuals
+C. *Multicollinearity*
+D. None of these
+
+Question 12 Build a backward stepwise regression model to predict “count”. Your “allmod” (the starting
+model) should include the following variables: season, mnth, hr, holiday, weekday, workingday, weathersit,
+temp, atemp, hum, and windspeed.
+```{R}
+allmod = lm(count ~ season + mnth + hr + holiday + weekday + workingday + weathersit + temp + atemp + hum + windspeed, bike) #use the ~. to include all predictors rather than typing them all in
+summary(allmod)
+
+emptymod = lm(count ~1, bike) #use ~1 to build an empty model 
+summary(emptymod)
+```
+
+```{r}
+#backward
+backmod = stepAIC(allmod, direction = "backward", trace = TRUE) #trace = TRUE shows how the model is built (which variables are removed)
+summary(backmod)
+```
+
+In the “allmod” you should see that the “workingday” variable appears with “NA” values in the model
+summary. This is happening because “workingday” is a perfect combination of two other predictor variables.
+Which two variables combine to make “workingday”?
+A. season and mnth
+B. *weekday and holiday*
+C. hr and mnth
+D. season and mnth
+
+Question 13 The backward stepwise method removes only one variable. Which variable is removed?
+A. windspeed
+B. *workingday*
+C. hum
+D. holiday

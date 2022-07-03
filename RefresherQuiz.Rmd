@@ -1,0 +1,98 @@
+---
+output:
+  word_document: default
+---
+##R Refresher - Module 1
+
+
+Libraries
+```{r}
+library(tidyverse)
+library(esquisse)
+```
+
+```{r diamonds}
+diamonds = as_tibble(diamonds)
+str(diamonds)
+```
+
+
+Question 1: How many rows are in this dataset? **53940 rows**
+```{r Question 1}
+nrow(diamonds)
+```
+
+
+Question 2: How many columns are in the “diamonds” dataset? **10 columns**
+```{r Question 2}
+ncol(diamonds)
+```
+
+
+Question 3: Using ggplot, create a scatterplot of carat (x axis) versus price (y axis). Which statement best
+describes the relationship between “caret” and “price”?  **B. As caret increases price increases**
+```{r Question 3}
+ggplot(diamonds, aes(x = carat, y = price)) + geom_point() + theme_classic()
+```
+
+
+Question 4: Repeat Question 3, but in this plot color the scatterplot points by the “cut” variable. Which
+statement best describes the relationship between “cut” and “price”?  **A. As cut quality increases price increases**
+```{r Question 4}
+ggplot(diamonds, mapping=aes(carat,price,color=cut)) + geom_point()
+```
+
+
+Question 5: Repeat Question 4, but in this plot you should facet by “color”. Faceting a plot is described at
+this link: http://www.cookbook-r.com/Graphs/Facets_(ggplot2)/. 
+What does “faceting” do to the plot? **C. Creates a separate scatterplot for each “color”**
+```{r Question 5}
+ggplot(diamonds, mapping=aes(carat,price,color=cut)) + geom_point() + facet_grid(. ~ color)
+```
+
+
+Question 6: Use the “read_csv” function to read-in the “InventoryData.csv” file as a data frame called
+“inventory”. NOTE: In this course we will ALWAYS (unless instructed otherwise) use the “read_csv” command.
+Do NOT use the “read.csv” command.
+In the “inventory” data frame that you have just created, what type of variable is “Supplier”? **D. character**
+```{r}
+inventory <- read_csv("InventoryData.csv")
+str(inventory)
+```
+
+
+Question 7 In the “inventory” data frame that you have just created, what is the mean of the “On Hand”
+variable? **100.5373**
+```{r}
+df = inventory  
+mean(df$`On Hand`)
+```
+
+
+Question 8: Use a filter to create a new data frame called “inventoryA” containing only inventory from
+Supplier A. How many rows are in this new data frame? **3695 rows**
+```{r Question 8}
+(inventoryA <- filter(inventory, Supplier == "A"))
+str(inventoryA)
+nrow(inventoryA)
+```
+
+
+Question 9: What does the line of code shown below do? **B. Creates a new variable called “OnHandRatio”**
+Note the use of the backtick character (on the tilde key on your computer’s keyboard) to delineate the variable names with spaces in them.
+```{r Question 9}
+inventoryA = mutate(inventoryA, OnHandRatio = `On Hand`/ `Annual Demand`)
+str(inventoryA)
+```
+
+
+Question 10: Using the “inventoryA” object that you created in Question 9, create a new data frame called
+“avg_cost” that contains the average “Cost per Unit ($)” by each “Item SKU” (let this quantity be in a
+variable called “SKUAvgCost." Hint: Recall the summarize and group_by functions and the use of the backtick
+character from Task 8. Your data frame should have only two columns:”Item SKU” and “SKUAvgCost”.
+What is the “SKUAvgCost” of items with an “Item SKU” of 011? **12.330000**
+```{r Question 10}
+avg_cost <- group_by(inventoryA, `Item SKU`)
+summarise(avg_cost, SKUAvgCost = mean(`Cost per Unit ($)`))
+```
+

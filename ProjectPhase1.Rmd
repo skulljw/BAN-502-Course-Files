@@ -1,0 +1,141 @@
+---
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+# BAN 502 – Project - Phase 1
+
+
+## Scull, John
+
+
+### Ames Home Sales Analysis
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse) #tidyverse set of packages and functions
+library(tidymodels)
+library(glmnet) #for Lasso, ridge, and elastic net models 
+library(GGally) #create ggcorr and ggpairs plots
+library(ggcorrplot) #create an alternative to ggcorr plots
+library(stringr)
+library(lubridate)
+library(scales)
+library(graphics)
+library(caret)
+```
+
+
+```{r data}
+ames <- read_csv("~/Documents/BAN 502/ames_student.csv")
+```
+
+```{r summary}
+summary(ames)
+str(ames)
+```
+
+
+```{r formatting}
+names(ames) <- tolower(names(ames))
+
+ames2 <- ames %>% 
+  dplyr::select(everything(),)
+names(ames)
+```
+
+### Data Exploration
+Begin exploring the data by looking at a plot of our response variable only by using the ggpairs function:  
+
+```{r ggpairs batch 1}
+ggpairs(ames2, columns = c("lot_frontage", "lot_area", "street", "alley" , "above_median"))
+ggpairs(ames2, columns = c("lot_shape" , "land_contour" , "utilities" , "lot_config" , "land_slope" , "above_median"))
+ggpairs(ames2, columns = c("condition_1" , "condition_2" , "bldg_type" , "house_style" , "above_median"))     
+ggpairs(ames2, columns = c("year_built" , "year_remod_add" , "roof_style" , "roof_matl" , "above_median"))
+ggpairs(ames2, columns = c("mas_vnr_type" , "mas_vnr_area" , "exter_qual" , "exter_cond" , "above_median"))       
+ggpairs(ames2, columns = c("bsmt_cond" , "bsmt_exposure" , "bsmtfin_type_1" , "bsmtfin_sf_1" , "above_median"))
+ggpairs(ames2, columns = c("bsmt_unf_sf" , "total_bsmt_sf" , "heating" , "heating_qc" , "above_median"))
+```
+
+```{r ggpairs batch 2}
+ggpairs(ames2, columns = c("first_flr_sf" , "second_flr_sf" , "low_qual_fin_sf" , "gr_liv_area" , "above_median"))
+ggpairs(ames2, columns = c("full_bath" , "half_bath" , "bedroom_abvgr" , "kitchen_abvgr" , "above_median"))     
+ggpairs(ames2, columns = c("functional" , "fireplaces" , "fireplace_qu" , "garage_type"  , "above_median"))      
+ggpairs(ames2, columns = c("garage_area" , "garage_qual" , "garage_cond" , "paved_drive" , "above_median"))    
+ggpairs(ames2, columns = c("enclosed_porch" , "three_season_porch" , "screen_porch" , "pool_area" , "above_median"))           
+ggpairs(ames2, columns = c("misc_feature" , "misc_val" , "mo_sold" , "year_sold" , "above_median"))
+```
+
+```{r ggpairs batch 3}
+ggpairs(ames2, columns = c("overall_cond" , "overall_qual" , "above_median"))
+ggpairs(ames2, columns = c("bsmt_qual" , "bsmtfin_sf_2" , "electrical" , "bsmt_half_bath" , "above_median"))
+ggpairs(ames2, columns = c("garage_cars" , "kitchen_qual" , "above_median"))
+ggpairs(ames2, columns = c("open_porch_sf" ,  "fence"  , "pool_qc" , "sale_condition" , "above_median"))
+ggpairs(ames2, columns = c("foundation" , "bsmtfin_type_2" , "central_air" , "above_median"))
+ggpairs(ames2, columns = c("bsmt_full_bath" , "wood_deck_sf" , "sale_type" , "above_median"))
+```
+
+
+
+```{r data narrowed}
+ames3 = ames2 %>% dplyr::select("lot_area" , "neighborhood" , "year_remod_add", "first_flr_sf" , "second_flr_sf" , "gr_liv_area" ,  "total_bsmt_sf" , "bsmt_half_bath" , "full_bath" , "half_bath" , "bedroom_abvgr" , "kitchen_abvgr" , "wood_deck_sf" , "year_sold" , "above_median")
+```
+
+
+
+```{r mutate}
+ames3 = ames3 %>% mutate_if(is.character,as_factor) 
+str(ames3)
+glimpse(ames3) 
+```
+
+Split the Data:
+```{r split}
+set.seed(123)
+ames_split = initial_split(ames3, prop = 0.80, strata = above_median)
+train = training(ames_split)
+test = testing(ames_split)
+```
+
+Visual options:
+Top 5 Statistically significant variables that help predict above_median sales price: Total Basement SF, First Floor SF, Garage Living Area, Neighborhood, Year Remodeled Addition.
+
+Box Plots:
+```{r box 1}
+ggplot(train, aes(x=total_bsmt_sf, fill = above_median)) + geom_boxplot() + theme_bw()
+```
+
+```{r box 2}
+ggplot(train, aes(x=first_flr_sf, fill = above_median)) + geom_boxplot() + theme_bw()
+```
+
+```{r box 3}
+ggplot(train, aes(x=gr_liv_area, fill = above_median)) + geom_boxplot() + theme_bw()
+```
+
+100% Stacked
+```{r stack 1}
+ggplot(train, aes(x=neighborhood, fill = above_median)) + geom_bar(position="fill") + theme_bw() + theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r stack 2}
+ggplot(train, aes(x=year_remod_add, fill = above_median)) + geom_bar(position="fill") + theme_bw()
+```
+
+Alternative (look at tabular data)  
+```{r table 1}
+t2 = table(train$above_median, train$year_remod_add) #create a table object
+prop.table(t2, margin = 2 ) #crosstab with proportions
+```
+
+```{r table 2}
+t2 = table(train$above_median, train$neighborhood) #create a table object
+prop.table(t2, margin = 2 ) #crosstab with proportions
+```
+
+

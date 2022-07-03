@@ -1,0 +1,181 @@
+---
+title: "Module6Quiz1"
+author: "John Scull"
+date: "6/27/2022"
+---
+
+```{r}
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(dendextend)
+```
+
+```{r}
+trucks <- read_csv("~/Documents/BAN 502/Module 6/trucks-1.csv")
+```
+
+```{r}
+str(trucks)
+summary(trucks)
+```
+
+
+###Question 1: Plot the relationship between Distance and Speeding.###
+
+```{r}
+trucks_scaled = trucks %>% select(-Driver_ID)
+trucks_cleaned = scale(trucks_scaled)
+summary(trucks_cleaned)
+```
+
+
+
+```{r}
+set.seed(412)
+clusts = 
+  tibble(k = 1:8) %>%
+  mutate(
+    kclust = map(k, ~kmeans(trucks_cleaned, .x)),
+    tidied = map(kclust, tidy),
+    glanced = map(kclust, glance),
+    augmented = map(kclust, augment, trucks_cleaned)
+  )
+
+clusts
+```
+
+```{r}
+clusters = 
+  clusts %>%
+  unnest(cols = c(tidied))
+
+assignments = 
+  clusts %>% 
+  unnest(cols = c(augmented))
+
+clusterings = 
+  clusts %>%
+  unnest(cols = c(glanced))
+```
+
+```{r}
+p1 = 
+  ggplot(assignments, aes(x = Distance, y = Speeding)) +
+  geom_point(aes(color = .cluster), alpha = 0.8) + 
+  facet_wrap(~ k)
+p1
+```
+
+```{r}
+ggplot(clusterings, aes(k, tot.withinss)) +
+  geom_line() +
+  geom_point()
+```
+
+
+```{r}
+set.seed(1234)
+clusters = kmeans(trucks_cleaned, 4)
+```
+
+Attach cluster to dataset
+```{r}
+trucks = augment(clusters, trucks)
+str(trucks)
+```
+
+Plots
+```{r}
+ggplot(trucks, aes(x=Distance,y=Speeding,color=factor(.cluster))) + geom_point()
+```
+
+Which characteristics (select all that apply) of the relationship between Distance and Speeding seems most
+apparent?
+A. There appears to be more speeding among the drivers with smaller Distances
+*B. The data points are arranged in what appear to be four clusters*
+*C. Longer distance drivers appear more likely to speed*
+D. There are no well-defined clusters of data points
+
+
+###Question 2: Create a new data frame called “trucks_cleaned” that contains the scaled and centered variables.###
+Two notes: 1) The “predictor” variables in the recipe are “Distance” and “Speeding” and 2) There is no need
+to create dummy variables as there are no categorical variables in the data. Be sure that you do NOT include
+the Driver_ID variable.
+
+
+
+
+```{r}
+trucks_cleaned = trucks %>% select(-Driver_ID) #get rid of the Driver_ID column
+
+set.seed(123)
+kclust = kmeans(trucks_cleaned, centers = 4) #run k-means clustering with k = 3
+kclust #view results
+```
+
+
+```{r}
+trucks_cleaned = augment(kclust, trucks_cleaned)
+trucks_cleaned
+```
+
+Plot the clusters
+```{r}
+ggplot(trucks_cleaned, aes(Speeding, Distance, color = .cluster)) +
+  geom_point(alpha = 0.4) + theme_bw()
+```
+```{r}
+summary(trucks_cleaned)
+str(trucks_cleaned)
+```
+
+
+What is the maximum value (to four decimal places) of the Distance variable in the scaled dataset? **244.7900**
+
+###Question 3 Use k-Means clustering with two clusters (k=2) to cluster the “trucks_cleaned” data frame.###
+Use a random number seed of 64. Use augment to add the resulting clusters object to the the “trucks” data
+frame. Design an appropriate visualization to visualize the clusters.
+
+```{r}
+set.seed(64)
+clusters = kmeans(trucks_cleaned, 4)
+```
+
+Attach cluster to dataset
+```{r}
+trucks = augment(clusters, trucks)
+str(trucks)
+```
+
+Plots
+```{r}
+ggplot(trucks, aes(x=Distance,y=Speeding,color=factor(.cluster))) + geom_point()
+```
+
+Which statement best describes the resulting clusters?
+*A. Drivers with shorter distances are in one cluster and those with longer distances are in another*
+B. Drivers with a higher proportion of speeding are in one cluster and those with a lower proportion of
+speeding are in another
+C. Neither of these statements apply to the resulting clusters
+
+
+
+Question 4: Create a visualization to show how the clusters appear from values of k from 1 to 8. Use a
+random number seed of 412. Which value of k appears to be most appropriate for this data? *4*
+
+
+Question 5: Create a plot of k versus within cluster sum of squares. Hint: We did this in the first clustering
+lecture. What number of clusters appears to be ideal based on this plot? **4**
+
+
+Question 6: Repeat Question 3 for the number of clusters that you correctly identifed in Question 5. Use
+the same random number seed as in Task 3. Create an appropriate visualization.
+Which statements (select all that apply) appear to be most apparent about the clusters created in this
+question?
+A. **One cluster is composed of short distance drivers with a low proportion of speeding.**
+B. **One cluster is composed of long distance drivers with a high proportion of speeding.**
+C. **One cluster is composed of long distance drivers with a low proportion of speeding.**
+D. **One cluster is composed of short distance drivers with a high proportion of speeding.**
+
+

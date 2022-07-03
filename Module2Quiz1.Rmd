@@ -1,0 +1,189 @@
+##Quiz 1
+###Module 2
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(GGally)
+library(lmtest)
+library(ggcorrplot)
+```
+
+Read-in Data
+```{r}
+air = airquality
+```
+
+Question 1 How many rows are in the “air” dataframe? *153*
+```{r}
+nrow(airquality)
+```
+
+Question 2 How many columns are in the “air” dataframe? *6*
+```{r}
+ncol(airquality)
+```
+
+
+
+Question 3 True/False: There is missing data in “Ozone” variable in the dataframe. *True*
+```{r}
+str(air)
+summary(air)
+```
+
+```{r}
+ggpairs(air)
+```
+
+
+Question 4 Which variable is most likely to be the response (Y) variable? *Ozone*
+A. Ozone
+B. Solar.R
+C. Wind
+D. Temp
+E. Month
+F. Day
+
+```{r}
+air2 = air %>% drop_na()
+```
+
+
+Question 5 How many rows remain in this new (air2) data frame? *111*
+```{r}
+nrow(air2)
+```
+
+
+
+Question 6 How many columns remain in this new (air2) data frame? *6*
+```{r}
+ncol(air2)
+```
+
+
+Question 7 Which variable is most strongly correlated with the “Ozone” variable?
+A. Solar.R
+B. Wind
+C. *Temp*
+D. Month
+E. Day
+```{r}
+ggpairs(air2)
+```
+```{r}
+p1 = ggplot(air2, aes(x=Solar.R,y=Ozone)) + geom_point(alpha=0.1) #changing alpha is helpful when many points may overlap
+p2 = ggplot(air2, aes(x=Wind,y=Ozone)) + geom_point(alpha=0.1)
+p3 = ggplot(air2, aes(x=Temp,y=Ozone)) + geom_point(alpha=0.1)
+p4 = ggplot(air2, aes(x=Month,y=Ozone)) + geom_point(alpha=0.1)
+p5 = ggplot(air2, aes(x=Day,y=Ozone)) + geom_point(alpha=0.1)
+grid.arrange(p1,p2,p3,p4,p5,ncol=2)
+```
+
+```{r}
+ggcorr(air2, method = c("pairwise", "pearson"),cor_matrix = NULL,nbreaks = NULL,digits = 2,name = "ozone",low = "#3B9AB2",mid = "#EEEEEE",high = "#F21A00",midpoint = 0,palette = NULL,geom = "tile",min_size = 2,max_size = 6,label = TRUE,label_alpha = FALSE,label_color = "black",label_round = 1,label_size = 4,limits = c(-1, 1),drop = is.null(limits) || identical(limits, FALSE),layout.exp = 0,legend.position = "right",legend.size = 9)
+```
+
+
+Question 8 Which variable is least strongly correlated with the “Ozone” variable?
+A. Solar.R
+B. Wind
+C. Temp
+D. Month
+E. *Day*
+
+
+Question 9 Plot “Temp” (x axis) versus “Ozone” (y axis) using the “ggplot” function. Choose an appropriate
+chart type. Which statement best describes the relationship between “Temp” and “Ozone”?
+A. As Temp increases, Ozone decreases
+B. As Temp increases there is no noticeable change in Ozone
+C. *As Temp increases, Ozone increases*
+```{r}
+ggplot(air2,aes(x=Temp,y=Ozone)) + geom_point(alpha=0.5) + theme_bw()
+```
+
+
+Question 10 What is the slope of this regression model (to four decimal places)? *2.4391*
+```{r Non Tidy approach}
+mod2 = lm(Ozone ~ Temp, air2) #create linear regression model
+summary(mod2) #examine the model
+```
+
+```{r}
+ggplot(air2,aes(x=Temp,y=Ozone)) + geom_point(alpha=0.1) + geom_smooth(method = "lm", color = "red") + theme_bw()
+```
+
+```{r}
+air2_simple = recipe(Ozone ~ Temp, air2)
+air2_simple
+```
+
+```{r}
+lm_air2 = #give the model type a name 
+  linear_reg() %>% #specify that we are doing linear regression
+  set_engine("lm") #specify the specify type of linear tool we want to use 
+```
+
+```{r}
+lm_wflow = 
+  workflow() %>% 
+  add_model(lm_air2) %>% 
+  add_recipe(air2_simple)
+```
+
+Next we fit (execute) the workflow on our dataset.  
+```{r}
+lm_fit = fit(lm_wflow, air2)
+```
+
+```{r}
+summary(lm_fit$fit$fit$fit) #three fits :), the actual fit is embedded deeply in the object
+```
+
+
+
+Question 11 what is the R-squared value of this model (not Adjusted R-squared) (to three decimal places)?
+*0.488*
+
+Question 12 Is the “Temp” variables significant in the model?
+*Yes*
+
+Question 13 Use the code below to generate 95% confidence intervals for the coefficients. Note that you
+may need to change “lm_fit” to the name of your model fit if you used a different name.
+True/False: A 95% confidence interval for the slope coefficient does not contain zero.
+
+```{r}
+confint(lm_fit$fit$fit$fit)
+```
+
+
+Question 14: Using your linear regression model with “Temp” to predict “Ozone”, what is the predicted
+“Ozone” value when “Temp” is equal to 80 (to two decimal places)? *47.48*
+
+```{r}
+#Manually
+-147.6461 + 2.4391*80
+```
+
+
+Question 15 Perform appropriate model diagnostics to verify whether or not the model appears to meet the
+four linear regression model assumptions.
+True/False: There is no evidence of non-independent (autocorrelated) residuals. *True*
+*Assumption1 - yes - linear*
+
+*Assumption 2 - DW Test*
+```{r}
+dwtest(lm_fit$fit$fit$fit)
+```
+
+*Assumption 3*
+```{r}
+air3 = air2 %>% mutate(resid1 = lm_fit$fit$fit$fit$residuals) #add the model residuals to our data frame
+ggplot(air3,aes(x=Temp,y=resid1)) + geom_point() + theme_bw()
+```
+*Assumption 4 - Normally Distributed*
+```{r}
+ggplot(air3,aes(x=resid1)) + geom_histogram() + theme_bw()
+```
+
